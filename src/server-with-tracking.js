@@ -56,8 +56,9 @@ app.get("/", (req, res) => {
       
       
       <a href="/api/generate-epaper-svg" class="button">Download E-Paper SVG</a>
-      <a href="/api/generate-epaper-svg" class="button" onclick="generateAndSaveEpaper(event)">Generate & Save E-Paper</a>
-      <a href="/view-epaper-svg" class="button">View Latest E-Paper SVG</a>
+      <a href="/api/latest.png" class="button">Download Latest PNG</a>
+      <a href="/view-epaper-svg" class="button">View Latest SVG</a>
+      <a href="/view-latest-png" class="button">View Latest PNG</a>
       <a href="/health" class="button">Health Check</a>
       
       <script>
@@ -151,6 +152,43 @@ app.get("/api/conquerStatus", (req, res) => {
   res.json(dataUpdater.getConquerStatus());
 });
 
+// Serve the latest PNG file
+app.get("/api/latest.png", async (req, res) => {
+  try {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    const pngPath = path.join(process.cwd(), "output", "latest.png");
+
+    // Check if PNG exists
+    try {
+      await fs.access(pngPath);
+    } catch {
+      return res.status(404).json({
+        error: "PNG not found. The image will be generated automatically when town data changes or every 5 minutes.",
+      });
+    }
+
+    // Get file stats for Last-Modified header
+    const stats = await fs.stat(pngPath);
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Last-Modified", stats.mtime.toUTCString());
+    res.setHeader("Cache-Control", "public, max-age=60"); // Cache for 1 minute
+    res.setHeader(
+      "Content-Disposition",
+      'inline; filename="foxhole-map-latest.png"',
+    );
+
+    // Stream the file
+    const fileStream = (await import("fs")).createReadStream(pngPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error("Error serving PNG:", error);
+    res.status(500).json({ error: "Failed to serve PNG" });
+  }
+});
+
 // Get enriched recent captures with hex and region names
 app.get("/api/recent-captures", async (req, res) => {
   try {
@@ -224,6 +262,133 @@ app.post("/api/generate-epaper-svg", async (req, res) => {
   } catch (error) {
     console.error("Error generating e-paper SVG:", error);
     res.status(500).json({ error: "Failed to generate e-paper SVG" });
+  }
+});
+
+// View the latest PNG in the browser
+app.get("/view-latest-png", async (req, res) => {
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    // Check if latest.png exists
+    const pngPath = path.join(process.cwd(), "output", "latest.png");
+
+    if (!fs.existsSync(pngPath)) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>PNG Not Found</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+            .error { background: #ffe6e6; padding: 20px; border-radius: 5px; margin: 20px 0; }
+            .button { background: #007cba; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 5px; }
+          </style>
+        </head>
+        <body>
+          <h1>PNG Not Found</h1>
+          <div class="error">
+            <p>The PNG will be generated automatically when town data changes or every 5 minutes.</p>
+            <p>Please check back in a moment.</p>
+          </div>
+          <a href="/" class="button">Back to Home</a>
+        </body>
+        </html>
+      `);
+    }
+
+    // Get file stats for timestamp
+    const stats = fs.statSync(pngPath);
+    const lastModified = new Date(stats.mtime).toLocaleString();
+
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Foxhole Map - Latest PNG</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+          }
+          .header {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .png-container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+          }
+          .png-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+          }
+          .button {
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px;
+          }
+          .button:hover { background: #005a87; }
+          .info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Foxhole Map - Latest PNG (800x480)</h1>
+          <div class="info">Last updated: ${lastModified}</div>
+          <div style="margin-top: 15px;">
+            <a href="/" class="button">Back to Home</a>
+            <a href="/api/latest.png" class="button">Download PNG</a>
+            <button class="button" onclick="location.reload()">Refresh</button>
+          </div>
+        </div>
+
+        <div class="png-container">
+          <img src="/api/latest.png?t=${Date.now()}" alt="Foxhole Map">
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error("Error viewing PNG:", error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Error</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+          .error { background: #ffe6e6; padding: 20px; border-radius: 5px; margin: 20px 0; }
+          .button { background: #007cba; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 5px; }
+        </style>
+      </head>
+      <body>
+        <h1>Error</h1>
+        <div class="error">
+          <p>Failed to load PNG: ${error.message}</p>
+        </div>
+        <a href="/" class="button">Back to Home</a>
+      </body>
+      </html>
+    `);
   }
 });
 
@@ -386,10 +551,10 @@ app.get("/view-epaper-svg", async (req, res) => {
 });
 
 // Start the web server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Foxhole SVG Generator server running on port ${port}`);
-  console.log(`📊 Web interface: http://localhost:${port}`);
-  console.log(`🔍 Health check: http://localhost:${port}/health`);
+  console.log(`📊 Web interface: http://0.0.0.0:${port}`);
+  console.log(`🔍 Health check: http://0.0.0.0:${port}/health`);
   console.log(
     `📈 Tracking service: ${dataUpdater.isRunning ? "running" : "stopped"}`,
   );

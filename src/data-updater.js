@@ -1,16 +1,23 @@
 import WarApi from "./warapi.js";
 import TownTracker from "./database.js";
+import PNGGenerator from "./png-generator.js";
+import FoxholeSVGGenerator from "./generate-svg.js";
 import logger from "./logger.js";
 
 class DataUpdater {
   constructor() {
     this.warApi = new WarApi();
     this.tracker = new TownTracker();
+    this.svgGenerator = new FoxholeSVGGenerator();
+    this.pngGenerator = new PNGGenerator(this.svgGenerator);
     this.isRunning = false;
     // War API dynamic map data updates every ~3 seconds per the documentation.
     // We poll every 5 seconds to stay responsive while using ETags to avoid
     // unnecessary bandwidth when data hasn't changed.
     this.updateInterval = 5 * 1000; // 5 seconds
+    // PNG generation fallback: update every 5 minutes even if no changes
+    // (to refresh timestamps, war duration, etc.)
+    this.pngFallbackInterval = 5 * 60 * 1000; // 5 minutes
   }
 
   async start() {
@@ -22,13 +29,20 @@ class DataUpdater {
     this.isRunning = true;
     logger.info("Starting data updater service...");
 
-    // Do initial update
+    // Do initial update and PNG generation
     await this.updateData();
+    await this.generatePNG("Initial generation");
 
-    // Set up periodic updates
+    // Set up periodic data updates (every 5 seconds)
     this.intervalId = setInterval(async () => {
       await this.updateData();
     }, this.updateInterval);
+
+    // Set up fallback PNG generation (every 5 minutes)
+    // This ensures timestamps and war duration stay fresh even if no towns change
+    this.pngIntervalId = setInterval(async () => {
+      await this.generatePNG("Scheduled fallback");
+    }, this.pngFallbackInterval);
   }
 
   stop() {
@@ -42,12 +56,17 @@ class DataUpdater {
       this.intervalId = null;
     }
 
+    if (this.pngIntervalId) {
+      clearInterval(this.pngIntervalId);
+      this.pngIntervalId = null;
+    }
+
     logger.info("Data updater service stopped");
   }
 
   async updateData() {
     try {
-      logger.info("Updating town control data...");
+      logger.debug("Updating town control data...");
 
       // Get current war info
       const warInfo = await this.warApi.war();
@@ -105,12 +124,42 @@ class DataUpdater {
       }
 
       if (changedTowns > 0) {
-        logger.info(`Data update complete. ${changedTowns} towns changed (${totalUpdates} total tracked).`);
+        logger.info(`Town control update: ${changedTowns} towns changed (${totalUpdates} total tracked)`);
+        // Generate PNG when towns actually change (Option A)
+        // Pass current conquerStatus and fetch map data
+        await this.generatePNGWithFreshData(`${changedTowns} town changes`);
       } else {
-        logger.info(`Data update complete. No changes (${totalUpdates} towns tracked).`);
+        // Only log "no changes" at debug level to reduce spam
+        logger.debug(`Data update complete. No changes (${totalUpdates} towns tracked)`);
       }
     } catch (error) {
       logger.error("Error updating data:", error);
+    }
+  }
+
+  // Generate PNG with fresh map data fetch (called on changes or fallback timer)
+  async generatePNGWithFreshData(reason) {
+    try {
+      logger.info(`Generating PNG: ${reason}`);
+      // Update SVG generator with current conquerStatus
+      this.svgGenerator.conquerStatus = this.tracker.getConquerStatus();
+      // Generate PNG (will fetch map data)
+      await this.pngGenerator.generatePNG(false);
+    } catch (error) {
+      logger.error("Failed to generate PNG:", error);
+    }
+  }
+
+  // Generate PNG for scheduled fallback (already has map data cached)
+  async generatePNG(reason) {
+    try {
+      logger.info(`Generating PNG: ${reason}`);
+      // Update SVG generator with current conquerStatus
+      this.svgGenerator.conquerStatus = this.tracker.getConquerStatus();
+      // Fetch fresh map data for scheduled updates
+      await this.pngGenerator.generatePNG(false);
+    } catch (error) {
+      logger.error("Failed to generate PNG:", error);
     }
   }
 

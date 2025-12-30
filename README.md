@@ -54,11 +54,12 @@ Visit `http://localhost:3000` to:
 
 - **Accurate Sub-region Coloring**: Recently captured regions are easily identifiable as they appear lighter and get darker over 48 hours
 - **Town Control Tracking**: SQLite database tracks real `lastChange` timestamps
-- **Live Data Updates**: Background service updates every 5 minutes
-- **E-paper Optimized**: High contrast colors and clear typography for small displays
+- **Live Data Updates**: Background service updates every 5 seconds with ETag caching
+- **Smart PNG Generation**: Auto-generates PNG when towns change OR every 5 minutes for fresh timestamps
+- **E-paper Optimized**: High contrast colors and clear typography for small displays (800x480)
 - **Single Container**: Everything runs in one Docker container
 - **Web Interface**: Easy-to-use UI for map generation and monitoring
-- **API Endpoints**: Programmatic access to all features
+- **API Endpoints**: Programmatic access to all features (SVG and PNG)
 - **Recent Captures Display**: Live tracking of town captures with hex and region names
 
 ## API Endpoints
@@ -68,13 +69,17 @@ When running the web server:
 - `GET /health` - Health check
 - `POST /api/generate-epaper-svg` - Generate and save e-paper SVG map
 - `GET /api/generate-epaper-svg` - Download e-paper SVG map
+- `GET /api/latest.png` - Download latest PNG map (auto-generated)
+- `GET /view-epaper-svg` - View latest SVG in browser
+- `GET /view-latest-png` - View latest PNG in browser
 - `GET /api/conquerStatus` - Get current tracking data
 - `GET /api/recent-captures` - Get enriched recent captures data
 
 ## Output
 
 - **E-paper SVG**: `output/foxhole-map-epaper-YYYY-MM-DD.svg`
-- **Latest e-paper**: `output/latest-epaper.svg`
+- **Latest e-paper SVG**: `output/latest-epaper.svg`
+- **Latest PNG**: `output/latest.png` (auto-generated on changes or every 5 min)
 - **Database**: Town control data in `data/towns.db`
 
 ## File Structure
