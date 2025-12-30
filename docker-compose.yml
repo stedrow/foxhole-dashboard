@@ -1,0 +1,17 @@
+services:
+  foxhole-dashboard:
+    build: .
+    image: ghcr.io/stedrow/foxhole-dashboard:1.0.1
+    container_name: foxhole-dashboard
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./output:/app/output
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - .env
+    restart: unless-stopped
+    command: ["node", "src/server-with-tracking.js"]

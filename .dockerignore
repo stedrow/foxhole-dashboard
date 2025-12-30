@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+README.md
+imgs/
+
+# Node
+node_modules
+npm-debug.log
+.npm
+
+# Environment
+.env
+.env.*
+!env.example
+
+# Output and data directories
+output/
+data/
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+
+# Make
+Makefile
+
+# Logs
+logs
+*.log
