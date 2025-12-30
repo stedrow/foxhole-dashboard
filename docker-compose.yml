@@ -1,6 +1,6 @@
 services:
   foxhole-dashboard:
-    image: ghcr.io/stedrow/foxhole-dashboard:1.0.4
+    image: ghcr.io/stedrow/foxhole-dashboard:1.0.5
     container_name: foxhole-dashboard
     ports:
       - "0.0.0.0:3000:3000"
