@@ -1,7 +1,10 @@
-import { Resvg } from "@resvg/resvg-js";
 import fs from "fs/promises";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import FoxholeSVGGenerator from "./generate-svg.js";
 import logger from "./logger.js";
+
+const execFileAsync = promisify(execFile);
 
 class PNGGenerator {
   constructor(svgGenerator = null) {
@@ -20,29 +23,20 @@ class PNGGenerator {
       }
       const svg = this.svgGenerator.generateEpaperSVG();
 
-      // Convert SVG to PNG using resvg at native resolution
-      // This preserves all detail from the SVG (800x480)
-      const resvg = new Resvg(svg, {
-        dpi: 96, // Standard DPI for accurate rendering
-        shapeRendering: 2, // GeometricPrecision for crisp edges
-        textRendering: 2, // GeometricPrecision for sharp text
-        imageRendering: 1, // OptimizeQuality for best quality
-        font: {
-          loadSystemFonts: true, // Load system fonts (Liberation Sans, DejaVu Sans, etc.)
-          defaultFontFamily: "Liberation Sans", // Fallback if Segoe UI not found
-        },
-      });
-
-      const pngData = resvg.render();
-      const pngBuffer = pngData.asPng();
-
-      logger.debug(`PNG dimensions: ${pngData.width}x${pngData.height}`);
-
       // Ensure output directory exists
       await fs.mkdir("/app/output", { recursive: true });
 
-      // Save PNG
-      await fs.writeFile("/app/output/latest.png", pngBuffer);
+      // Save SVG temporarily for ImageMagick processing
+      const svgPath = "/app/output/temp.svg";
+      await fs.writeFile(svgPath, svg);
+
+      try {
+        // Convert SVG directly to optimized PNG using ImageMagick
+        await this.convertSvgToEinkPng(svgPath, "/app/output/latest.png");
+      } finally {
+        // Always clean up temp SVG file
+        await fs.unlink(svgPath).catch(() => {});
+      }
 
       const duration = Date.now() - startTime;
       this.lastGenerationTime = Date.now();
@@ -54,6 +48,27 @@ class PNGGenerator {
       logger.error("Error generating PNG:", error);
       throw error;
     }
+  }
+
+  async convertSvgToEinkPng(svgPath, outputPath) {
+    // Convert SVG to PNG with eink optimizations in a single ImageMagick pass
+    // Applies Floyd-Steinberg dithering and grayscale conversion for sharp rendering
+    const args = [
+      "-density", "96",                // Set DPI for SVG rendering
+      "-background", "white",          // Set background color
+      svgPath,
+      "-colorspace", "Gray",           // Convert to grayscale
+      "-type", "Grayscale",            // Ensure grayscale type
+      "-dither", "FloydSteinberg",     // Apply Floyd-Steinberg dithering for eink
+      "-colors", "16",                 // Reduce to 16 gray levels (4-bit)
+      "-define", "png:bit-depth=4",    // 4-bit depth for eink
+      "-define", "png:color-type=0",   // Grayscale PNG
+      "-strip",                        // Remove metadata
+      outputPath
+    ];
+
+    await execFileAsync("convert", args);
+    logger.debug("ImageMagick SVG→PNG conversion complete");
   }
 
   getLastGenerationTime() {
