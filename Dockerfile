@@ -1,11 +1,5 @@
 # Build stage
-FROM node:24-alpine AS builder
-
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache \
-    sqlite-dev \
-    make \
-    g++
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -14,10 +8,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --production
 
 # Production stage
-FROM node:24-alpine
-
-# Install only runtime dependencies (sqlite-libs for better-sqlite3)
-RUN apk add --no-cache sqlite-libs
+FROM node:20-slim
 
 WORKDIR /app
 

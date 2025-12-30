@@ -1,6 +1,5 @@
 import WarApi from "./warapi.js";
 import TownTracker from "./database.js";
-import fs from "fs/promises";
 import logger from "./logger.js";
 
 class DataUpdater {
@@ -8,7 +7,10 @@ class DataUpdater {
     this.warApi = new WarApi();
     this.tracker = new TownTracker();
     this.isRunning = false;
-    this.updateInterval = 1 * 60 * 1000; // 1 minute
+    // War API dynamic map data updates every ~3 seconds per the documentation.
+    // We poll every 5 seconds to stay responsive while using ETags to avoid
+    // unnecessary bandwidth when data hasn't changed.
+    this.updateInterval = 5 * 1000; // 5 seconds
   }
 
   async start() {
@@ -47,20 +49,20 @@ class DataUpdater {
     try {
       logger.info("Updating town control data...");
 
-      // Load static data from local file (same as SVG generator)
-      const staticFile = await fs.readFile("/app/public/static.json", "utf8");
-      const staticData = JSON.parse(staticFile);
-      const regions = staticData.features.filter(
-        (f) => f.properties.type === "Region",
-      );
+      // Get current war info
+      const warInfo = await this.warApi.war();
+      const currentWarNumber = warInfo.warNumber;
+
+      // Fetch maps list dynamically from API
+      const mapsList = await this.warApi.maps();
+      logger.debug(`Processing ${mapsList.length} regions from API`);
 
       let totalUpdates = 0;
       let changedTowns = 0;
 
       // Process each region
-      for (const region of regions) {
+      for (const regionName of mapsList) {
         try {
-          const regionName = region.id;
           logger.debug(`Processing region: ${regionName}`);
 
           // Get dynamic data for this region
@@ -97,11 +99,8 @@ class DataUpdater {
             }
             totalUpdates++;
           }
-
-          // Small delay to avoid overwhelming the API
-          await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
-          logger.error(`Error processing region ${region.id}:`, error.message);
+          logger.error(`Error processing region ${regionName}:`, error.message);
         }
       }
 
