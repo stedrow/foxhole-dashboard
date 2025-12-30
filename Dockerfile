@@ -17,13 +17,16 @@ RUN npm ci --production
 # Production stage
 FROM node:23-slim
 
-# Install fonts and dependencies
+# Install fonts, X11 libraries, and dependencies for ImageMagick 7
 RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
     curl \
     ca-certificates \
+    libx11-6 \
+    libgomp1 \
+    libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ImageMagick 7 from official binary (AppImage format)
