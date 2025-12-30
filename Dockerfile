@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-slim AS builder
+FROM node:23-slim AS builder
 
 WORKDIR /app
 
@@ -8,9 +8,9 @@ COPY package.json package-lock.json* ./
 RUN npm ci --production
 
 # Production stage
-FROM node:20-slim
+FROM node:23-slim
 
-# Install fonts and ImageMagick for PNG rendering
+# Install fonts and ImageMagick 7 for PNG rendering
 RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
