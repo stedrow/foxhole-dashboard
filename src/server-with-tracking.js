@@ -169,10 +169,11 @@ app.get("/api/latest.png", async (req, res) => {
       });
     }
 
-    // Get file stats for Last-Modified header
+    // Get file stats for Last-Modified header and Content-Length
     const stats = await fs.stat(pngPath);
 
     res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Length", stats.size);
     res.setHeader("Last-Modified", stats.mtime.toUTCString());
     res.setHeader("Cache-Control", "public, max-age=60"); // Cache for 1 minute
     res.setHeader(
