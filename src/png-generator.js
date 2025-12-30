@@ -30,13 +30,10 @@ class PNGGenerator {
       const svgPath = "/app/output/temp.svg";
       await fs.writeFile(svgPath, svg);
 
-      try {
-        // Convert SVG directly to optimized PNG using ImageMagick
-        await this.convertSvgToEinkPng(svgPath, "/app/output/latest.png");
-      } finally {
-        // Always clean up temp SVG file
-        await fs.unlink(svgPath).catch(() => {});
-      }
+      // Convert SVG directly to optimized PNG using ImageMagick
+      await this.convertSvgToEinkPng(svgPath, "/app/output/latest.png");
+
+      // Keep temp SVG file for debugging (don't delete it)
 
       const duration = Date.now() - startTime;
       this.lastGenerationTime = Date.now();
@@ -53,12 +50,14 @@ class PNGGenerator {
   async convertSvgToEinkPng(svgPath, outputPath) {
     // Convert SVG to PNG with eink optimizations in a single ImageMagick pass
     // Applies Floyd-Steinberg dithering and grayscale conversion for sharp rendering
+    // ImageMagick 7 syntax: input file first, then options
     const args = [
-      "-size", "800x480",              // Set output size to match SVG dimensions
-      "-density", "96",                // Set DPI for SVG rendering
-      "-background", "white",          // Set background color
       svgPath,
-      "-resize", "800x480!",           // Force exact output dimensions (! ignores aspect ratio)
+      "-background", "white",          // Set background color
+      "-density", "96",                // Set DPI for SVG rendering
+      "-resize", "800x480",            // Resize to fit (maintains aspect ratio)
+      "-gravity", "center",            // Center the image
+      "-extent", "800x480",            // Create exact 800x480 canvas
       "-colorspace", "Gray",           // Convert to grayscale
       "-type", "Grayscale",            // Ensure grayscale type
       "-dither", "FloydSteinberg",     // Apply Floyd-Steinberg dithering for eink
