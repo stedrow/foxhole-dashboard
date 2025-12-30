@@ -125,7 +125,7 @@ class FoxholeSVGGenerator {
     // Fetch active maps list for resistance phase
     if (this.isResistancePhase()) {
       this.activeMapsList = apiMapsList;
-      logger.info(`Resistance phase detected. ${this.activeMapsList.length} active maps.`);
+      logger.debug(`Resistance phase detected. ${this.activeMapsList.length} active maps.`);
     }
 
     // Fetch fresh active players count
@@ -324,7 +324,7 @@ class FoxholeSVGGenerator {
         regionCount++;
       }
     }
-    logger.info(`Generated ${regionCount} regions (${inactiveCount} inactive)`);
+    logger.debug(`Generated ${regionCount} regions (${inactiveCount} inactive)`);
 
 
     // Add recent captures display optimized for e-paper

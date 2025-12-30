@@ -99,7 +99,9 @@ class TownTracker {
       `Updated town ${townId}: team=${team}, lastChange=${new Date(now).toISOString()}`,
     );
 
-    return result;
+    // Return whether the team actually changed, not the SQLite result
+    // SQLite's INSERT OR REPLACE always reports changes=1 even when data is identical
+    return { changes: teamChanged ? 1 : 0 };
   }
 
   // Get town control status
