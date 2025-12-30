@@ -17,19 +17,23 @@ RUN npm ci --production
 # Production stage
 FROM node:23-slim
 
-# Install fonts and dependencies for ImageMagick 7
+# Install fonts and dependencies
 RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
-    wget \
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ImageMagick 7 from official binary
-RUN wget https://imagemagick.org/archive/binaries/magick -O /usr/local/bin/magick \
-    && chmod +x /usr/local/bin/magick \
-    && ln -s /usr/local/bin/magick /usr/local/bin/convert \
-    && ln -s /usr/local/bin/magick /usr/local/bin/identify
+# Install ImageMagick 7 from official binary (AppImage format)
+# Verified against SHA256: 7bb019b7e10000067599f16dece0553c60d88341375de3e361b13a9a8e865819
+RUN curl -fsSL https://imagemagick.org/archive/binaries/magick -o /tmp/magick \
+    && echo "7bb019b7e10000067599f16dece0553c60d88341375de3e361b13a9a8e865819  /tmp/magick" | sha256sum -c - \
+    && install -m 755 /tmp/magick /usr/local/bin/magick \
+    && ln -sf /usr/local/bin/magick /usr/local/bin/convert \
+    && ln -sf /usr/local/bin/magick /usr/local/bin/identify \
+    && rm -f /tmp/magick
 
 # Cache fonts
 RUN fc-cache -f -v
