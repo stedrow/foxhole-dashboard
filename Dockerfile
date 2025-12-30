@@ -22,11 +22,15 @@ RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
+    libfontconfig1 \
+    libfreetype6 \
     curl \
     ca-certificates \
     libx11-6 \
     libgomp1 \
     libxext6 \
+    libharfbuzz0b \
+    libfribidi0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ImageMagick 7 from official binary (AppImage format)
