@@ -1,6 +1,6 @@
 {
   "name": "foxhole-dashboard",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Generate Foxhole maps as SVG for e-paper displays",
   "main": "src/generate-svg.js",
   "type": "module",
