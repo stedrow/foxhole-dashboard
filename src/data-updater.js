@@ -120,11 +120,6 @@ class DataUpdater {
     return this.tracker.getConquerStatus();
   }
 
-  // Cleanup old records
-  cleanup() {
-    this.tracker.cleanupOldRecords();
-  }
-
   // Close connections
   close() {
     this.stop();

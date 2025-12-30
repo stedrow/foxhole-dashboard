@@ -582,7 +582,6 @@ class FoxholeSVGGenerator {
 
                       if (conquerFeature) {
                         break;
-                      } else {
                       }
                     }
                   }
@@ -631,7 +630,6 @@ class FoxholeSVGGenerator {
                           team: trackedTown.team,
                           lastChange: trackedTown.lastChange,
                         };
-                      } else {
                       }
                       break;
                     }
@@ -723,22 +721,6 @@ class FoxholeSVGGenerator {
       // This ensures we don't use incorrect fallback data
 
       return "neutral";
-    }
-
-    // Get the town's conquerStatus data from our tracked database
-    let conquerFeature = null;
-    if (this.conquerStatus && this.conquerStatus.features) {
-      // Generate the town ID using the same method as the database
-      const townId = this.tracker.generateTownId(
-        associatedTown.iconType,
-        associatedTown.x,
-        associatedTown.y,
-      );
-      conquerFeature = this.conquerStatus.features[townId];
-
-      if (conquerFeature) {
-      } else {
-      }
     }
 
     // Return control status based on town ownership
@@ -963,8 +945,6 @@ class FoxholeSVGGenerator {
     // The main project uses extent = [-2046, 1777] and region.properties.box
     const coords = regionGeometry.geometry.coordinates[0];
     const minX = Math.min(...coords.map(([x]) => x));
-    const maxX = Math.max(...coords.map(([x]) => x));
-    const minY = Math.min(...coords.map(([, y]) => y));
     const maxY = Math.max(...coords.map(([, y]) => y));
 
     // Use the main project's coordinate conversion
@@ -973,136 +953,6 @@ class FoxholeSVGGenerator {
     const worldY = maxY - town.y * extent[1];
 
     return [worldX, worldY];
-  }
-
-  // Get recent captures data (reusable for both SVG and web interface)
-  getRecentCapturesData() {
-    if (!this.conquerStatus || !this.conquerStatus.features) {
-      return { wardenCaptures: [], colonialCaptures: [] };
-    }
-
-    // Collect recent captures (within last 48 hours)
-    const recentCaptures = [];
-    const now = Date.now();
-    const fortyEightHours = 48 * 60 * 60 * 1000;
-
-    for (const [id, feature] of Object.entries(this.conquerStatus.features)) {
-      if (feature.lastChange && now - feature.lastChange < fortyEightHours) {
-        // Find the town name from static data
-        let townName = "Unknown";
-        let hexName = "Unknown";
-        for (const [regionName, data] of this.mapData) {
-          if (data.dynamic && data.dynamic.mapItems) {
-            const town = data.dynamic.mapItems.find(
-              (item) =>
-                this.warApi.isIconType(item.iconType) &&
-                this.warApi.iconTypes[item.iconType].conquer &&
-                this.tracker.generateTownId(item.iconType, item.x, item.y) ===
-                  id,
-            );
-            if (town) {
-              hexName = this.getHexName(regionName, data.regionGeometry);
-              // Try to get the actual zone name from the Voronoi regions
-              if (data.voronoiRegions) {
-                const voronoiRegion = data.voronoiRegions.find((vRegion) => {
-                  // Check if this town is inside this Voronoi region
-                  const townWorldCoords = this.convertTownToWorldCoordinates(
-                    town,
-                    data.regionGeometry,
-                  );
-                  return this.inside(
-                    townWorldCoords,
-                    vRegion.geometry.coordinates[0],
-                  );
-                });
-                if (
-                  voronoiRegion &&
-                  voronoiRegion.properties &&
-                  voronoiRegion.properties.notes
-                ) {
-                  townName = voronoiRegion.properties.notes;
-                } else {
-                  townName = this.warApi.iconTypes[town.iconType].notes;
-                }
-              } else {
-                townName = this.warApi.iconTypes[town.iconType].notes;
-              }
-              break;
-            }
-          }
-        }
-
-        recentCaptures.push({
-          id,
-          team: feature.team,
-          lastChange: feature.lastChange,
-          townName,
-          hexName,
-          timeSinceCapture: now - feature.lastChange,
-        });
-      }
-    }
-
-    // Sort by most recent first
-    recentCaptures.sort((a, b) => a.timeSinceCapture - b.timeSinceCapture);
-
-    // Take only the 6 most recent captures for each team (optimized for e-paper)
-    const wardenCaptures = recentCaptures
-      .filter(
-        (capture) => capture.team === "WARDENS" || capture.team === "Warden",
-      )
-      .slice(0, 6);
-
-    const colonialCaptures = recentCaptures
-      .filter(
-        (capture) =>
-          capture.team === "COLONIALS" || capture.team === "Colonial",
-      )
-      .slice(0, 6);
-
-    let svg = "";
-
-    // Colonial captures on bottom left (compact layout)
-    if (colonialCaptures.length > 0) {
-      svg += `<g transform="translate(10, ${svgHeight - 120})">`;
-      svg += `<text x="0" y="0" style="font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: bold; fill: #000000;">Colonial</text>`;
-
-      colonialCaptures.forEach((capture, index) => {
-        const hours = Math.floor(capture.timeSinceCapture / (60 * 60 * 1000));
-        const minutes = Math.floor(
-          (capture.timeSinceCapture % (60 * 60 * 1000)) / (60 * 1000),
-        );
-        const timeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
-        // Compact format for e-paper with better spacing
-        svg += `<text x="0" y="${(index + 1) * 18}" style="font-family: 'Segoe UI', sans-serif; font-size: 11px; fill: #000000;">`;
-        svg += `${capture.hexName} - ${capture.townName} - ${timeText}`;
-        svg += `</text>`;
-      });
-      svg += `</g>`;
-    }
-
-    // Warden captures on bottom right (compact layout, right-justified)
-    if (wardenCaptures.length > 0) {
-      svg += `<g transform="translate(${svgWidth - 10}, ${svgHeight - 120})">`;
-      svg += `<text x="0" y="0" style="font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: bold; fill: #000000; text-anchor: end;">Warden</text>`;
-
-      wardenCaptures.forEach((capture, index) => {
-        const hours = Math.floor(capture.timeSinceCapture / (60 * 60 * 1000));
-        const minutes = Math.floor(
-          (capture.timeSinceCapture % (60 * 60 * 1000)) / (60 * 1000),
-        );
-        const timeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
-        // Compact format for e-paper, right-justified with better spacing
-        svg += `<text x="0" y="${(index + 1) * 18}" style="font-family: 'Segoe UI', sans-serif; font-size: 11px; fill: #000000; text-anchor: end;">`;
-        svg += `${capture.hexName} - ${capture.townName} - ${timeText}`;
-        svg += `</text>`;
-      });
-      svg += `</g>`;
-    }
-
-    return svg;
   }
 
   // Get recent captures data (reusable for both SVG and web interface)
@@ -1335,10 +1185,6 @@ class FoxholeSVGGenerator {
           this.warApi.isIconType(item.iconType) &&
           this.warApi.iconTypes[item.iconType].conquer,
       );
-
-      townItems.slice(0, 6).forEach((item) => {
-        // Town dots removed for cleaner appearance
-      });
     }
 
     svg += "\n  </g>";

@@ -157,20 +157,6 @@ class TownTracker {
     };
   }
 
-  // Clean up old records (optional)
-  cleanupOldRecords(daysToKeep = 30) {
-    const cutoffTime = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
-
-    const stmt = this.db.prepare(`
-      DELETE FROM towns WHERE updated_at < ?
-    `);
-
-    const result = stmt.run(cutoffTime);
-    console.log(`Cleaned up ${result.changes} old records`);
-
-    return result;
-  }
-
   // Close database connection
   close() {
     this.db.close();
