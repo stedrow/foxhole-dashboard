@@ -27,28 +27,28 @@ help:
 # Development
 .PHONY: dev
 dev:
-	docker-compose -f docker-compose.dev.yml up -d --build
+	docker compose -f docker-compose.dev.yml up -d --build
 
 .PHONY: dev-logs
 dev-logs:
-	docker-compose -f docker-compose.dev.yml logs -f
+	docker compose -f docker-compose.dev.yml logs -f
 
 .PHONY: dev-down
 dev-down:
-	docker-compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml down
 
 # Production
 .PHONY: up
 up:
-	docker-compose up -d
+	docker compose up -d
 
 .PHONY: down
 down:
-	docker-compose down
+	docker compose down
 
 .PHONY: logs
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 # Build & Publish
 .PHONY: build
@@ -70,8 +70,8 @@ shell:
 
 .PHONY: clean
 clean:
-	docker-compose down
-	docker-compose -f docker-compose.dev.yml down
+	docker compose down
+	docker compose -f docker-compose.dev.yml down
 	docker rmi $(IMAGE_NAME) $(GHCR_IMAGE) || true
 
 .DEFAULT_GOAL := help

@@ -1,3 +1,6 @@
+# Dependencies
+node_modules/
+
 # macOS system files
 .DS_Store
 
@@ -5,9 +8,14 @@
 .env
 
 # Database files
-data/towns.db
 data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
 
 # Output files
 output/
 output/*
+
+# Claude Config
+settings.local.json

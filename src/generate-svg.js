@@ -16,53 +16,6 @@ async function loadStaticData() {
   return STATIC_DATA;
 }
 
-// Foxhole hex regions in proper order for stitching
-const HEX_REGIONS = [
-  "BasinSionnachHex",
-  "SpeakingWoodsHex",
-  "HowlCountyHex",
-  "CallumsCapeHex",
-  "ReachingTrailHex",
-  "ClansheadValleyHex",
-  "NevishLineHex",
-  "MooringCountyHex",
-  "ViperPitHex",
-  "MorgensCrossingHex",
-  "OarbreakerHex",
-  "StonecradleHex",
-  "CallahansPassageHex",
-  "WeatheredExpanseHex",
-  "GodcroftsHex",
-  "FarranacCoastHex",
-  "LinnMercyHex",
-  "MarbanHollow",
-  "StlicanShelfHex",
-  "WestgateHex",
-  "LochMorHex",
-  "DrownedValeHex",
-  "EndlessShoreHex",
-  "FishermansRowHex",
-  "KingsCageHex",
-  "DeadLandsHex",
-  "ClahstraHex",
-  "TempestIslandHex",
-  "StemaLandingHex",
-  "SableportHex",
-  "UmbralWildwoodHex",
-  "AllodsBightHex",
-  "TheFingersHex",
-  "OriginHex",
-  "HeartlandsHex",
-  "ShackledChasmHex",
-  "ReaversPassHex",
-  "AshFieldsHex",
-  "GreatMarchHex",
-  "TerminusHex",
-  "RedRiverHex",
-  "AcrithiaHex",
-  "KalokaiHex",
-];
-
 class FoxholeSVGGenerator {
   constructor() {
     this.warApi = new WarApi();
@@ -154,7 +107,7 @@ class FoxholeSVGGenerator {
     // Load static coordinate data
     const staticData = await loadStaticData();
 
-    // Get current war info and active maps list
+    // Get current war info and active maps list from API
     const warInfo = await this.warApi.war();
     logger.debug(
       `War ${warInfo.warNumber} - Status: ${warInfo.winner === "NONE" ? "Ongoing" : "Ended"}`,
@@ -165,9 +118,13 @@ class FoxholeSVGGenerator {
     this.resistanceStartTime = warInfo.resistanceStartTime;
     this.winner = warInfo.winner || "NONE";
 
+    // Fetch maps list dynamically from API
+    const apiMapsList = await this.warApi.maps();
+    logger.debug(`Fetched ${apiMapsList.length} maps from API`);
+
     // Fetch active maps list for resistance phase
     if (this.isResistancePhase()) {
-      this.activeMapsList = await this.warApi.maps();
+      this.activeMapsList = apiMapsList;
       logger.info(`Resistance phase detected. ${this.activeMapsList.length} active maps.`);
     }
 
@@ -175,9 +132,10 @@ class FoxholeSVGGenerator {
     this.activePlayers = await this.fetchActivePlayers();
     logger.debug(`Active players: ${this.activePlayers}`);
 
-    // Fetch data for all regions
-    for (const region of HEX_REGIONS) {
-      // Find static data for this region from the main project's static.json
+    // Fetch data for all regions from API maps list
+    // This allows us to handle maps that may have been added/removed between wars
+    for (const region of apiMapsList) {
+      // Find static data for this region from the local static.json
       const regionStaticData = staticData.features.filter(
         (feature) =>
           feature.properties.region === region || feature.id === region,
@@ -192,17 +150,9 @@ class FoxholeSVGGenerator {
 
       try {
         logger.debug(`Fetching ${region}...`);
-        const [dynamicData] = await Promise.all([
-          this.warApi.dynamicMap(region),
-        ]);
+        const dynamicData = await this.warApi.dynamicMap(region);
 
         this.mapData.set(region, {
-          static: {
-            mapTextItems: regionStaticData.filter(
-              (f) =>
-                f.properties.type === "Major" || f.properties.type === "Minor",
-            ),
-          },
           dynamic: dynamicData,
           regionGeometry: regionStaticData.find(
             (f) => f.properties.type === "Region",
@@ -213,12 +163,6 @@ class FoxholeSVGGenerator {
         // Region is inactive (404 during resistance phase) - still add it with static data
         logger.debug(`${region} is inactive, adding with static data only`);
         this.mapData.set(region, {
-          static: {
-            mapTextItems: regionStaticData.filter(
-              (f) =>
-                f.properties.type === "Major" || f.properties.type === "Minor",
-            ),
-          },
           dynamic: null,
           regionGeometry: regionStaticData.find(
             (f) => f.properties.type === "Region",
@@ -1166,24 +1110,6 @@ class FoxholeSVGGenerator {
         scale,
         offsetX,
         offsetY,
-      );
-    }
-
-    // Add major landmarks as subtle points only (no text clutter)
-    if (data.static && data.static.mapTextItems) {
-      data.static.mapTextItems.forEach((landmark) => {
-        if (landmark.properties.type === "Major") {
-          // Landmark dots removed for cleaner appearance
-        }
-      });
-    }
-
-    // Add towns from dynamic data - make them smaller and more subtle
-    if (data.dynamic && data.dynamic.mapItems) {
-      const townItems = data.dynamic.mapItems.filter(
-        (item) =>
-          this.warApi.isIconType(item.iconType) &&
-          this.warApi.iconTypes[item.iconType].conquer,
       );
     }
 

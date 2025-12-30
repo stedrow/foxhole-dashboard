@@ -2,18 +2,44 @@
 export class WarApi {
   constructor(shardUrl = "war-service-live.foxholeservices.com") {
     this.shardUrl = shardUrl;
+    // ETag cache: stores { etag, data } for each endpoint
+    this.etagCache = new Map();
   }
 
   async request(path) {
+    const headers = {
+      "Content-Type": "application/json",
+      "User-Agent": "foxhole-dashboard",
+    };
+
+    // Add If-None-Match header if we have a cached ETag for this path
+    const cached = this.etagCache.get(path);
+    if (cached?.etag) {
+      headers["If-None-Match"] = cached.etag;
+    }
+
     const response = await fetch(`https://${this.shardUrl}/api/${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "foxhole-dashboard",
-      },
+      headers,
     });
 
+    // Handle 304 Not Modified - return cached data
+    if (response.status === 304) {
+      if (cached?.data) {
+        return cached.data;
+      }
+      throw new Error("Received 304 but no cached data available");
+    }
+
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+
+      // Store ETag for future requests
+      const etag = response.headers.get("ETag");
+      if (etag) {
+        this.etagCache.set(path, { etag, data });
+      }
+
+      return data;
     }
     throw new Error(`API request failed: ${response.status}`);
   }
