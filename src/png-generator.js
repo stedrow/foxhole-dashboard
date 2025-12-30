@@ -61,7 +61,7 @@ class PNGGenerator {
       "-type", "Grayscale",            // Ensure grayscale type
       "-dither", "FloydSteinberg",     // Apply Floyd-Steinberg dithering for eink
       "-colors", "16",                 // Reduce to 16 gray levels (4-bit)
-      "-define", "png:bit-depth=4",    // 4-bit depth for eink
+      "-define", "png:bit-depth=4",    // 4-bit depth for eink (requires ImageMagick 7)
       "-define", "png:color-type=0",   // Grayscale PNG
       "-strip",                        // Remove metadata
       outputPath
