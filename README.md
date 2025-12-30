@@ -22,24 +22,29 @@ This project creates beautiful, real-time maps of the Foxhole war by:
 
 ## Quick Start
 
-### 1. Setup Environment
-```bash
-# Copy environment template (optional)
-cp env.example .env
-# Edit .env if you want to customize the port
-```
+### 1. Start the Service
 
-### 2. Start the Service
+**Production (recommended for users):**
 ```bash
-# Build and start everything
+# Uses pre-built image from GHCR
 docker-compose up -d
 
-# Or build manually
-docker build -t foxhole-dashboard .
-docker run -d --name foxhole-dashboard -p 3000:3000 foxhole-dashboard
+# Or with make
+make up
 ```
 
-### 3. Access the Web Interface
+**Development (for contributors):**
+```bash
+# Builds from local source code
+docker-compose -f docker-compose.dev.yml up -d
+
+# Or with make
+make dev
+```
+
+The production setup pulls a ready-to-use image, while development builds from your local code for testing changes.
+
+### 2. Access the Web Interface
 Visit `http://localhost:3000` to:
 - View real-time war status
 - Monitor recent captures

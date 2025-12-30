@@ -2,7 +2,6 @@
 export class WarApi {
   constructor(shardUrl = "war-service-live.foxholeservices.com") {
     this.shardUrl = shardUrl;
-    this.eTags = {};
   }
 
   async request(path) {
@@ -17,43 +16,6 @@ export class WarApi {
       return await response.json();
     }
     throw new Error(`API request failed: ${response.status}`);
-  }
-
-  async staticMap(hexId) {
-    return await this.request(`worldconquest/maps/${hexId}/static`);
-  }
-
-  async getStaticMap() {
-    // Get all regions static data
-    const maps = await this.maps();
-    const allStaticData = [];
-
-    // Handle different possible response formats
-    const mapList = Array.isArray(maps) ? maps : maps.maps || [];
-
-    for (const map of mapList) {
-      try {
-        const mapName = map.name || map;
-        if (!mapName) {
-          console.warn("Skipping map with no name:", map);
-          continue;
-        }
-
-        const staticData = await this.staticMap(mapName);
-        if (Array.isArray(staticData)) {
-          allStaticData.push(...staticData);
-        } else if (staticData && Array.isArray(staticData.features)) {
-          allStaticData.push(...staticData.features);
-        }
-      } catch (error) {
-        console.warn(
-          `Failed to fetch static data for ${map.name || map}:`,
-          error.message,
-        );
-      }
-    }
-
-    return { features: allStaticData };
   }
 
   async dynamicMap(hexId) {
