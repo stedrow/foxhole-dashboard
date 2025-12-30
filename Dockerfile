@@ -27,12 +27,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ImageMagick 7 from official binary (AppImage format)
+# Extract AppImage since FUSE is not available in Docker
 # Verified against SHA256: 7bb019b7e10000067599f16dece0553c60d88341375de3e361b13a9a8e865819
 RUN curl -fsSL https://imagemagick.org/archive/binaries/magick -o /tmp/magick \
     && echo "7bb019b7e10000067599f16dece0553c60d88341375de3e361b13a9a8e865819  /tmp/magick" | sha256sum -c - \
-    && install -m 755 /tmp/magick /usr/local/bin/magick \
-    && ln -sf /usr/local/bin/magick /usr/local/bin/convert \
-    && ln -sf /usr/local/bin/magick /usr/local/bin/identify \
+    && chmod +x /tmp/magick \
+    && cd /tmp && ./magick --appimage-extract \
+    && mv squashfs-root /opt/imagemagick \
+    && ln -sf /opt/imagemagick/AppRun /usr/local/bin/magick \
+    && ln -sf /opt/imagemagick/AppRun /usr/local/bin/convert \
+    && ln -sf /opt/imagemagick/AppRun /usr/local/bin/identify \
     && rm -f /tmp/magick
 
 # Cache fonts
