@@ -54,9 +54,11 @@ class PNGGenerator {
     // Convert SVG to PNG with eink optimizations in a single ImageMagick pass
     // Applies Floyd-Steinberg dithering and grayscale conversion for sharp rendering
     const args = [
+      "-size", "800x480",              // Set output size to match SVG dimensions
       "-density", "96",                // Set DPI for SVG rendering
       "-background", "white",          // Set background color
       svgPath,
+      "-resize", "800x480!",           // Force exact output dimensions (! ignores aspect ratio)
       "-colorspace", "Gray",           // Convert to grayscale
       "-type", "Grayscale",            // Ensure grayscale type
       "-dither", "FloydSteinberg",     // Apply Floyd-Steinberg dithering for eink
