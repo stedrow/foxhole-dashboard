@@ -10,11 +10,12 @@ RUN npm ci --production
 # Production stage
 FROM node:20-slim
 
-# Install fonts for PNG rendering
+# Install fonts and ImageMagick for PNG rendering
 RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
+    imagemagick \
     && fc-cache -f -v \
     && rm -rf /var/lib/apt/lists/*
 
