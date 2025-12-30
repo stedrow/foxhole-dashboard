@@ -17,14 +17,22 @@ RUN npm ci --production
 # Production stage
 FROM node:23-slim
 
-# Install fonts and ImageMagick 7 for PNG rendering
+# Install fonts and dependencies for ImageMagick 7
 RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
-    imagemagick \
-    && fc-cache -f -v \
+    wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install ImageMagick 7 from official binary
+RUN wget https://imagemagick.org/archive/binaries/magick -O /usr/local/bin/magick \
+    && chmod +x /usr/local/bin/magick \
+    && ln -s /usr/local/bin/magick /usr/local/bin/convert \
+    && ln -s /usr/local/bin/magick /usr/local/bin/identify
+
+# Cache fonts
+RUN fc-cache -f -v
 
 WORKDIR /app
 
