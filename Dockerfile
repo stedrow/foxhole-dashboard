@@ -3,6 +3,13 @@ FROM node:23-slim AS builder
 
 WORKDIR /app
 
+# Install build dependencies for native modules (better-sqlite3)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy package files and install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci --production
