@@ -20,10 +20,11 @@ class PNGGenerator {
       }
       const svg = this.svgGenerator.generateEpaperSVG();
 
-      // Convert SVG to PNG using resvg at native resolution
-      // This preserves all detail from the SVG (800x480)
+      // Convert SVG to PNG using resvg at 4x resolution for supersampling
+      // Higher resolution (3200x1920) allows downscaling to produce thinner, smoother lines
       const resvg = new Resvg(svg, {
-        dpi: 96, // Standard DPI for accurate rendering
+        fitTo: { mode: 'zoom', value: 4 }, // 4x zoom for 4x resolution (3200x1920)
+        dpi: 96, // Standard DPI
         shapeRendering: 2, // GeometricPrecision for crisp edges
         textRendering: 2, // GeometricPrecision for sharp text
         imageRendering: 1, // OptimizeQuality for best quality
