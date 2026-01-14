@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --production
 
 # Production stage
-FROM node:20-slim
+FROM node:24-slim
 
 # Install fonts for PNG rendering
 RUN apt-get update && apt-get install -y \
