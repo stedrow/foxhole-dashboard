@@ -1,6 +1,6 @@
 services:
   foxhole-dashboard:
-    image: ghcr.io/stedrow/foxhole-dashboard:1.0.5
+    image: ghcr.io/stedrow/foxhole-dashboard:1.0.6
     container_name: foxhole-dashboard
     user: "${UID:-1000}:${GID:-1000}"
     ports:
